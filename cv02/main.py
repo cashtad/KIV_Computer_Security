@@ -6,7 +6,6 @@ def extract_hidden_message(bmp_file):
     hidden_bits = []
     hidden_message = ""
 
-
     # TODO: Какая то иная манипуляция с байтами
     for byte in bmp_data[pixel_data_offset:]:
         hidden_bits.append(str(byte & 1))  # list of end bits
