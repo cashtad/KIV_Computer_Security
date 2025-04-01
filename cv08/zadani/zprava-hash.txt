@@ -1,0 +1,1 @@
+Kdo implementuje tuto hash funkci, dostane 2 bodiky.
