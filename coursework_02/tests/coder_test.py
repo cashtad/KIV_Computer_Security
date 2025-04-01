@@ -1,7 +1,6 @@
 import unittest
 
 from coursework_02 import coder
-from coursework_02.coder import mixcolumns
 
 
 class TestMathFunctions(unittest.TestCase):
@@ -46,7 +45,7 @@ class TestMathFunctions(unittest.TestCase):
         ]
 
         # Применяем mixcolumns к состоянию
-        result = mixcolumns(state)
+        result = coder.mixcolumns(state)
 
         # Проверяем, что результат совпадает с ожидаемым
         self.assertEqual(result, expected_result)
