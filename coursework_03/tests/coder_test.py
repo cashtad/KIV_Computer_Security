@@ -9,7 +9,5 @@ class MyTestCase1(unittest.TestCase):
         data = coder.generate_numbers()
 
 
-
-
 if __name__ == '__main__':
     unittest.main()

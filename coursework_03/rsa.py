@@ -1,50 +1,84 @@
+import os
 import sys
 
-from coursework_03 import coder
+import coder
+import decoder
 
+
+# Function to read plain text from file
 def read_plain_text(filename):
-    BLOCK_SIZE = 5
+    BLOCK_SIZE_IN = 32
     blocks = []
-    with open(filename, 'r') as file:
-        input = file.read()
-        data = ""
-        counter = 0
-        for char in input:
-            value = ord(char)
-            if counter == 0:
-                value += 100
-            if value < 100:
-                value = "0" + str(value)
-            else:
-                value = str(value)
+    try:
+        with open(filename, 'rb') as f:
+            while block := f.read(BLOCK_SIZE_IN):  # Split file to blocks
+                blocks.append(block)
+        return blocks
+    except FileNotFoundError:
+        print("File to encrypt found")
 
-            data += value
-            counter += 1
 
-            if counter == BLOCK_SIZE:
-                blocks.append(int(data))
-                data = ""
-                counter = 0
-    return blocks
-
+# Read values for private key from file
+def read_priv_key(filename):
+    try:
+        with open(filename, 'r') as f:
+            text = f.read()
+            parts = text.split('=')
+            d = int("0x" + parts[1][:-2], 16)
+            n = int("0x" + parts[2], 16)
+            return d, n
+    except FileNotFoundError:
+        exit("File with key was not found")
 
 
 if __name__ == "__main__":
 
-    private_key_filename = "priv_key.txt"
-    public_key_filename = "pub_key.txt"
+    private_key_filename = "priv_key.txt"  # Private key filename
+    public_key_filename = "pub_key.txt"  # Public key filename
 
-    enc_file_ext = "rsa"
+    file_ext = "csv"  # Input file for encoding must be with this extension
+    enc_file_ext = "rsa"  # Extension for encoded files
 
     if len(sys.argv) < 3:
         exit(code="Usage: python3 rsa.py <mode> <filename>")
 
     if sys.argv[1] == "-e":
-        data = read_plain_text("validation/customers-20.csv")
-        coder.code(data)
-        print("Encrypting...")
+
+        filename = sys.argv[2].split("/")[-1]
+        file_input_name = os.path.join(sys.argv[2])
+        file_input_name_main = filename.split(".")[0]
+        file_input_name_ext = filename.split(".")[1]
+
+        if file_input_name_ext != file_ext:
+            exit(code="Usage: python3 rsa.py -e <filename.csv>")
+
+        encoded_filename = file_input_name_main + "." + enc_file_ext
+
+        data = read_plain_text(file_input_name)  # Read data from plain file
+
+        #   Creation of enc file
+        with open(encoded_filename, 'w') as f:
+            f.write("")
+
+        coder.code(data, encoded_filename)  # Encrypt then write data to file
+
+        print("Successfully encoded to: " + encoded_filename)
 
     elif sys.argv[1] == "-d":
-        print("Decrypting...")
+
+        filename = sys.argv[2].split("/")[-1]
+        filename_ext = filename.split(".")[1]
+
+        if filename_ext != enc_file_ext:
+            exit(code="Usage: python3 rsa.py -d <filename.rsa>")
+
+        d, n = read_priv_key(private_key_filename)  # Read value for decoding
+
+        decoded_filename = filename.split(".")[0] + ".csv"
+
+        data = decoder.decode(filename, decoded_filename, d, n)  # Block-by-block decoding then writing to file
+
+        print("Successfully decoded to: " + decoded_filename)
+
     else:
         exit(code="Usage: python3 rsa.py <mode (-e/-d)> <filename>")

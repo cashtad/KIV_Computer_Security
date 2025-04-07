@@ -1,16 +1,10 @@
-import math
 import random
 import secrets
 
-from coursework_03 import decoder
+from tqdm import tqdm
 
 
-def generate_and_save_public_key(filename, e, n):
-    return
-
-def generate_and_save_private_key(filename, d, n):
-    return
-
+# Function to check if number is prime (NOT GUARANTEED)
 def miller_rabin(n, k):
     if n == 2:
         return True
@@ -36,61 +30,64 @@ def miller_rabin(n, k):
     return True
 
 
-def xgcd(a, b, s1=1, s2=0, t1=0, t2=1):
-
-    if (b == 0):
-        return abs(a), 1, 0
-
-    q = math.floor(a / b)
-    r = a - q * b
-    s3 = s1 - q * s2
-    t3 = t1 - q * t2
-
-    # if r==0, then b will be the gcd and s2, t2 the Bezout coefficients
-    return (abs(b), s2, t2) if (r == 0) else xgcd(b, r, s2, s3, t2, t3)
-
-def multinv(b, n):
-    # Get the gcd and the second Bezout coefficient (t)
-    # from the Extended Euclidean Algorithm. (We don't need s)
-    my_gcd, _, t = xgcd(n, b)
-
-    # It only has a multiplicative inverse if the gcd is 1
-    if (my_gcd == 1):
-        return t % n
-    else:
-        raise ValueError('{} has no multiplicative inverse modulo {}'.format(b, n))
-
+# Function is needed to generate random values for keys
 def generate_numbers():
-    e = 17
+    e = 65537
     n = 0
     q = 0
     p = 0
+    KEY_SIZE = 2048  # бит
     while True:
-        while n < 10000000000000000:
-            p = secrets.randbelow(1000000000)
-            q = secrets.randbelow(1000000000)
-            if p * q < 10000000000000000:
-                continue
+
+        p_is_even = False
+        q_is_even = False
+
+        while not p_is_even:
+            p = secrets.randbits(KEY_SIZE // 2)
             if miller_rabin(p, 40):
-                if miller_rabin(q, 40):
-                    n = p * q
+                p_is_even = True
+
+        while not q_is_even:
+            q = secrets.randbits(KEY_SIZE // 2)
+            if miller_rabin(q, 40):
+                q_is_even = True
+
+        n = p * q
         x = (p - 1) * (q - 1)
         try:
-            d = multinv(e, x)
-            print(f"q = {q}\np = {p}\nn = {n}\nx = {x}\nd = {d}")
-            return d,e,n
+            d = pow(e, -1, x)
+
+            break
         except ValueError:
             pass
+    return d, e, n
 
-def code(data_blocks):
-    d,e,n = generate_numbers()
 
-    cypher_text = ""
+# Saves keys to separate files
+def save_keys(d, e, n):
+    with open("priv_key.txt", "w") as file:
+        text = f"d={hex(d)[2:]}\nn={hex(n)[2:]}"
+        file.write(text)
+        print("Private key saved to priv_key.txt")
+    with open("pub_key.txt", "w") as file:
+        text = f"e={hex(e)[2:]}\nn={hex(n)[2:]}"
+        file.write(text)
+        print("Public key saved to pub_key.txt")
 
-    for block in data_blocks:
-        number = int(block)
-        result = pow(number, e) % n
-        binary_str = bin(result)[2:].zfill(64)
-        decoded = decoder.decode_block(binary_str,d, n)
-        print(f"{block} -> {binary_str} -> {decoded}")
 
+# Main function for coding
+# 1) Generates numbers for keys
+# 2) Saves keys in separated files
+# 3) Block-by-block encrypting then appending to file in binary format
+def code(data_blocks, encoded_filename):
+    BLOCK_SIZE_OUT = 256
+    d, e, n = generate_numbers()
+
+    save_keys(d, e, n)
+
+    with open(encoded_filename, "ab") as file:
+        for block in tqdm(data_blocks, desc="Encrypting...", unit="blocks"):
+            number = int.from_bytes(block, byteorder='big')
+            coded_number = pow(number, e, n)
+            coded_bytes = coded_number.to_bytes(BLOCK_SIZE_OUT, byteorder='big')
+            file.write(coded_bytes)

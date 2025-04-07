@@ -9,6 +9,5 @@ class MyTestCase(unittest.TestCase):
         data = rsa.read_plain_text(filename)
 
 
-
 if __name__ == '__main__':
     unittest.main()
