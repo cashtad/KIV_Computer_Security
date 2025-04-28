@@ -1,15 +1,18 @@
 import secrets
 
+
 def save_hex(filename, value):
     with open(filename, 'w') as f:
-        f.write(hex(value)[2:])  # сохранить без '0x'
+        f.write(hex(value)[2:])  # save without '0x'
+
 
 def load_hex(filename):
     with open(filename, 'r') as f:
         return int(f.read().strip(), 16)
 
+
+# Quick check for primeness. Doesn't guarantee, but works mostly fine
 def is_prime(n, k=5):
-    """Проверка простоты методом Миллера-Рабина"""
     if n <= 3:
         return n == 2 or n == 3
     if n % 2 == 0:
@@ -33,11 +36,12 @@ def is_prime(n, k=5):
             return False
     return True
 
+
+# Generates new keys and saves them into files.
 def generate_keys():
-    """Генерация новых ключей ElGamal и сохранение в файлы"""
     while True:
         p = secrets.randbits(256)
-        p |= (1 << 255) | 1  # сделать p достаточно большим и нечётным
+        p |= (1 << 255) | 1  # makes p uneven
         if is_prime(p):
             break
 
@@ -52,19 +56,17 @@ def generate_keys():
 
     return p, g, x, y
 
+
+# Encryption
 def elgamal_encrypt(m, p, g, y):
-    """Шифрование одного блока с помощью ElGamal"""
     k = secrets.randbelow(p - 2) + 1
     a = pow(g, k, p)
     b = (m * pow(y, k, p)) % p
     return a, b
 
+
+# Main encryption function
 def encrypt_bytes(plaintext_bytes):
-    """
-    @brief Шифрует 32 байта данных с помощью ElGamal.
-    @param plaintext_bytes Байтовый объект длиной ровно 32 байта.
-    @return Кортеж (a, b), где оба элемента — целые числа, представляющие зашифрованные данные.
-    """
     if len(plaintext_bytes) != 32:
         raise ValueError("Input must be exactly 32 bytes.")
 
@@ -77,8 +79,14 @@ def encrypt_bytes(plaintext_bytes):
     except FileNotFoundError:
         p, g, x, y = generate_keys()
 
-    if m >= p:
-        raise ValueError("Message is too large for the current prime. Regenerate keys.")
+    while True:
+        try:
+            if m >= p:
+                raise ValueError("Message is too large for the current prime. Regenerate keys.")
+            else:
+                break
+        except ValueError:
+            p, g, x, y = generate_keys()
 
     a, b = elgamal_encrypt(m, p, g, y)
     return a, b
