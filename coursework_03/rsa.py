@@ -52,7 +52,7 @@ if __name__ == "__main__":
         if file_input_name_ext != file_ext:
             exit(code="Usage: python3 rsa.py -e <filename.csv>")
 
-        encoded_filename = file_input_name_main + "." + enc_file_ext
+        encoded_filename = file_input_name_main + "_" + file_input_name_ext + "." + enc_file_ext
 
         data = read_plain_text(file_input_name)  # Read data from plain file
 
@@ -69,12 +69,15 @@ if __name__ == "__main__":
         filename = sys.argv[2].split("/")[-1]
         filename_ext = filename.split(".")[1]
 
+        plainfile_ext = filename.split("_")[1].split('.')[0]
+        plainfile_name = filename.split("_")[0]
+
         if filename_ext != enc_file_ext:
             exit(code="Usage: python3 rsa.py -d <filename.rsa>")
 
         d, n = read_priv_key(private_key_filename)  # Read value for decoding
 
-        decoded_filename = filename.split(".")[0] + ".csv"
+        decoded_filename = plainfile_name + "." + plainfile_ext
 
         data = decoder.decode(filename, decoded_filename, d, n)  # Block-by-block decoding then writing to file
 
