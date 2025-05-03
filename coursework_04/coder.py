@@ -1,9 +1,10 @@
+import math
 import secrets
 
 
 def save_hex(filename, value):
     with open(filename, 'w') as f:
-        f.write(hex(value)[2:])  # save without '0x'
+        f.write(hex(value)[2:])
 
 
 def load_hex(filename):
@@ -11,7 +12,6 @@ def load_hex(filename):
         return int(f.read().strip(), 16)
 
 
-# Quick check for primeness. Doesn't guarantee, but works mostly fine
 def is_prime(n, k=5):
     if n <= 3:
         return n == 2 or n == 3
@@ -26,7 +26,7 @@ def is_prime(n, k=5):
     for _ in range(k):
         a = secrets.randbelow(n - 3) + 2
         x = pow(a, d, n)
-        if x == 1 or x == n - 1:
+        if x in (1, n - 1):
             continue
         for __ in range(r - 1):
             x = pow(x, 2, n)
@@ -37,11 +37,10 @@ def is_prime(n, k=5):
     return True
 
 
-# Generates new keys and saves them into files.
 def generate_keys():
     while True:
         p = secrets.randbits(256)
-        p |= (1 << 255) | 1  # makes p uneven
+        p |= (1 << 255) | 1  # Установим старший бит и сделаем p нечетным
         if is_prime(p):
             break
 
@@ -49,44 +48,37 @@ def generate_keys():
     x = secrets.randbelow(p - 2) + 1
     y = pow(g, x, p)
 
-    save_hex('p.txt', p)
-    save_hex('g.txt', g)
-    save_hex('x.txt', x)
-    save_hex('y.txt', y)
+    save_hex("p.txt", p)
+    save_hex("g.txt", g)
+    save_hex("x.txt", x)
+    save_hex("y.txt", y)
 
     return p, g, x, y
 
 
-# Encryption
-def elgamal_encrypt(m, p, g, y):
-    k = secrets.randbelow(p - 2) + 1
-    a = pow(g, k, p)
-    b = (m * pow(y, k, p)) % p
-    return a, b
+def sign_hash(hash_bytes):
+    if len(hash_bytes) != 32:
+        raise ValueError("Hash must be 32 bytes (256 bits) long.")
 
-
-# Main encryption function
-def encrypt_bytes(plaintext_bytes):
-    if len(plaintext_bytes) != 32:
-        raise ValueError("Input must be exactly 32 bytes.")
-
-    m = int.from_bytes(plaintext_bytes, byteorder='big')
+    m = int.from_bytes(hash_bytes, byteorder="big")
 
     try:
-        p = load_hex('p.txt')
-        g = load_hex('g.txt')
-        y = load_hex('y.txt')
+        p = load_hex("p.txt")
+        g = load_hex("g.txt")
+        x = load_hex("x.txt")
     except FileNotFoundError:
-        p, g, x, y = generate_keys()
+        p, g, x, _ = generate_keys()
+
+    while m >= p:
+        p, g, x, _ = generate_keys()
 
     while True:
-        try:
-            if m >= p:
-                raise ValueError("Message is too large for the current prime. Regenerate keys.")
-            else:
-                break
-        except ValueError:
-            p, g, x, y = generate_keys()
+        k = secrets.randbelow(p - 2) + 1
+        if math.gcd(k, p - 1) == 1:
+            break
 
-    a, b = elgamal_encrypt(m, p, g, y)
+    a = pow(g, k, p)
+    k_inv = pow(k, -1, p - 1)
+    b = (k_inv * (m - x * a)) % (p - 1)
+
     return a, b

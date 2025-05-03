@@ -3,24 +3,14 @@ def load_hex(filename):
         return int(f.read().strip(), 16)
 
 
-# Inversed element
-def modinv(a, p):
-    return pow(a, -1, p)
+def verify_signature(hash_bytes, a, b):
+    p = load_hex("p.txt")
+    g = load_hex("g.txt")
+    y = load_hex("y.txt")
 
+    m = int.from_bytes(hash_bytes, byteorder="big")
 
-# Decryption
-def elgamal_decrypt(a, b, p, x):
-    s = pow(a, x, p)
-    s_inv = modinv(s, p)
-    m = (b * s_inv) % p
-    return m
+    left = pow(g, m, p)
+    right = (pow(y, a, p) * pow(a, b, p)) % p
 
-
-def decrypt_pair(a, b):
-    p = load_hex('p.txt')
-    x = load_hex('x.txt')
-
-    m = elgamal_decrypt(a, b, p, x)
-
-    plaintext_bytes = m.to_bytes(32, byteorder='big')
-    return plaintext_bytes
+    return left == right
